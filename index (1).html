@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quality Intervention Tracker</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8f7f4; color: #1a1a18; }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 32px 20px; }
+  h1 { font-size: 20px; font-weight: 500; margin-bottom: 4px; }
+  .subtitle { font-size: 12px; color: #888; margin-bottom: 24px; }
+
+  /* config banner */
+  #configBanner { background: #fff3cd; border: 1px solid #ffc107; border-radius: 10px; padding: 16px 20px; margin-bottom: 20px; font-size: 13px; }
+  #configBanner strong { display: block; margin-bottom: 8px; font-size: 14px; }
+  #configBanner input { width: 100%; padding: 7px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; margin-top: 4px; margin-bottom: 8px; font-family: monospace; }
+  #configBanner label { font-size: 12px; color: #555; font-weight: 500; }
+  #saveConfig { background: #1a1a18; color: #fff; border: none; border-radius: 6px; padding: 8px 18px; font-size: 13px; cursor: pointer; margin-top: 4px; }
+
+  /* metrics */
+  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 24px; }
+  .metric { background: #fff; border: 1px solid #eee; border-radius: 10px; padding: 12px 14px; }
+  .metric-label { font-size: 11px; color: #888; margin-bottom: 4px; }
+  .metric-value { font-size: 24px; font-weight: 500; }
+
+  /* toolbar */
+  .toolbar { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+  .toolbar input, .toolbar select { font-size: 13px; padding: 7px 10px; border: 1px solid #e0e0e0; border-radius: 8px; background: #fff; color: #1a1a18; }
+  .toolbar input { flex: 1; min-width: 180px; }
+  .btn { font-size: 13px; padding: 7px 14px; border-radius: 8px; border: 1px solid #e0e0e0; background: #fff; color: #1a1a18; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 5px; }
+  .btn:hover { background: #f5f5f5; }
+  .btn-primary { background: #1a1a18; color: #fff; border-color: #1a1a18; }
+  .btn-primary:hover { background: #333; }
+
+  /* tabs */
+  .tabs { display: flex; gap: 2px; border-bottom: 1px solid #e5e5e5; margin-bottom: 16px; }
+  .tab { font-size: 13px; padding: 8px 16px; border: none; background: none; color: #888; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .tab.active { color: #1a1a18; border-bottom-color: #1a1a18; font-weight: 500; }
+
+  /* table */
+  .table-wrap { background: #fff; border: 1px solid #eee; border-radius: 12px; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
+  th { font-size: 11px; font-weight: 500; color: #888; text-align: left; padding: 10px 12px; border-bottom: 1px solid #f0f0f0; white-space: nowrap; }
+  td { padding: 10px 12px; border-bottom: 1px solid #f7f7f7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr.data-row:hover td { background: #fafafa; cursor: pointer; }
+  .empty { text-align: center; padding: 60px 20px; color: #aaa; font-size: 14px; }
+
+  /* badges */
+  .badge { display: inline-block; font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 20px; white-space: nowrap; }
+  .b-red { background: #fef2f2; color: #991b1b; }
+  .b-amber { background: #fffbeb; color: #92400e; }
+  .b-orange { background: #fff7ed; color: #9a3412; }
+  .b-teal { background: #f0fdf4; color: #166534; }
+  .b-blue { background: #eff6ff; color: #1e40af; }
+  .b-purple { background: #faf5ff; color: #6b21a8; }
+  .b-gray { background: #f5f5f5; color: #525252; }
+  .sf-tag { font-size: 10px; background: #fffbeb; color: #92400e; border-radius: 4px; padding: 1px 5px; margin-left: 4px; font-weight: 500; }
+
+  /* import banner */
+  .import-banner { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 10px 16px; margin-bottom: 16px; font-size: 13px; color: #166534; display: flex; justify-content: space-between; align-items: center; }
+
+  /* meeting cards */
+  .meeting-card { background: #fff; border: 1px solid #eee; border-radius: 12px; padding: 16px 20px; margin-bottom: 12px; cursor: pointer; }
+  .meeting-card:hover { border-color: #ccc; }
+  .meeting-card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .meeting-card-name { font-size: 14px; font-weight: 500; }
+  .meeting-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 12px; }
+  .meeting-grid span { color: #888; }
+  .meeting-notes { font-size: 12px; color: #888; border-top: 1px solid #f0f0f0; padding-top: 8px; margin-top: 8px; }
+
+  /* modal */
+  .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100; align-items: flex-start; justify-content: center; padding: 40px 16px; overflow-y: auto; }
+  .modal-bg.open { display: flex; }
+  .modal { background: #fff; border-radius: 16px; width: 100%; max-width: 620px; max-height: 85vh; overflow-y: auto; }
+  .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #f0f0f0; position: sticky; top: 0; background: #fff; z-index: 1; }
+  .modal-header h2 { font-size: 15px; font-weight: 500; }
+  .modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: #888; line-height: 1; }
+  .modal-body { padding: 20px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-col { display: flex; flex-direction: column; gap: 4px; }
+  .form-col.full { grid-column: 1 / -1; }
+  .form-col label { font-size: 11px; font-weight: 500; color: #888; }
+  .form-col input, .form-col select, .form-col textarea { font-size: 13px; padding: 7px 10px; border: 1px solid #e0e0e0; border-radius: 8px; background: #fff; color: #1a1a18; width: 100%; font-family: inherit; }
+  .form-col textarea { resize: vertical; min-height: 60px; }
+  .section-label { grid-column: 1/-1; font-size: 10px; font-weight: 600; color: #aaa; text-transform: uppercase; letter-spacing: 0.06em; padding-top: 8px; border-top: 1px solid #f0f0f0; margin-top: 4px; }
+  .form-actions { display: flex; justify-content: space-between; align-items: center; padding-top: 16px; margin-top: 8px; border-top: 1px solid #f0f0f0; }
+  .btn-delete { font-size: 13px; color: #dc2626; border: 1px solid #fca5a5; background: none; border-radius: 8px; padding: 7px 14px; cursor: pointer; }
+  .btn-save { font-size: 13px; font-weight: 500; background: #1a1a18; color: #fff; border: none; border-radius: 8px; padding: 8px 20px; cursor: pointer; }
+  .btn-cancel { font-size: 13px; color: #888; border: 1px solid #e0e0e0; background: none; border-radius: 8px; padding: 7px 14px; cursor: pointer; }
+
+  /* history */
+  .hist-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid #f7f7f7; font-size: 12px; }
+  .hist-date { color: #aaa; width: 80px; flex-shrink: 0; }
+  .hist-source { color: #ccc; font-size: 11px; }
+
+  /* loading */
+  .loading { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 200; display: flex; align-items: center; justify-content: center; }
+  .loading-box { background: #fff; border-radius: 12px; padding: 20px 28px; font-size: 14px; display: flex; align-items: center; gap: 10px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner { width: 16px; height: 16px; border: 2px solid #e0e0e0; border-top-color: #1a1a18; border-radius: 50%; animation: spin 0.7s linear infinite; }
+</style>
+</head>
+<body>
+
+<!-- Config Banner -->
+<div id="configBanner" class="wrap" style="max-width:1200px;margin:0 auto;padding:32px 20px 0;">
+  <div id="configBannerInner">
+    <strong>⚙️ First-time setup — enter your Airtable credentials</strong>
+    <label>Airtable Personal Access Token</label>
+    <input type="password" id="cfgPAT" placeholder="patXXXXXX...">
+    <label>Airtable Base ID</label>
+    <input type="text" id="cfgBaseID" placeholder="appXXXXXXXX">
+    <label>Anthropic API Key (for PDF import)</label>
+    <input type="password" id="cfgAnthropicKey" placeholder="sk-ant-...">
+    <br>
+    <button id="saveConfig" onclick="saveConfig()">Save & Continue</button>
+    <p style="font-size:11px;color:#888;margin-top:8px;">Saved in your browser only — never sent anywhere except Airtable and Anthropic directly.</p>
+  </div>
+</div>
+
+<div class="wrap" id="app" style="display:none">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+    <div>
+      <h1>Quality intervention tracker</h1>
+      <div class="subtitle" id="importMeta">Import an SF report to get started</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <label class="btn" style="cursor:pointer">
+        📄 Import SF report
+        <input type="file" accept=".pdf" id="pdfInput" style="display:none" onchange="handlePDF(event)">
+      </label>
+      <button class="btn btn-primary" onclick="openAdd()">+ Log issue</button>
+      <button class="btn" onclick="saveConfig(true)" style="font-size:11px;color:#aaa">⚙️</button>
+    </div>
+  </div>
+
+  <div id="importBanner" style="display:none" class="import-banner"></div>
+
+  <div class="metrics" id="metrics"></div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('log',this)">Issue log</button>
+    <button class="tab" onclick="switchTab('meeting',this)" id="meetingTab">Meeting prep</button>
+  </div>
+
+  <div id="tabLog">
+    <div class="toolbar">
+      <input type="text" id="search" placeholder="Search account, owner…" oninput="render()">
+      <select id="fSentiment" onchange="render()">
+        <option value="">All sentiment</option>
+        <option>Not Great</option><option>Worried</option><option>Unhappy</option><option>Stable</option><option>Improved</option>
+      </select>
+      <select id="fStatus" onchange="render()">
+        <option value="">All status</option>
+        <option>Flagged</option><option>Open</option><option>In Progress</option><option>Resolved</option><option>Recurring</option>
+      </select>
+      <select id="fOwner" onchange="render()"><option value="">All SF owners</option></select>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th style="width:150px">Account</th>
+          <th style="width:100px">SF Owner</th>
+          <th style="width:105px">Sentiment</th>
+          <th style="width:95px">SF Health</th>
+          <th style="width:130px">Root Cause</th>
+          <th style="width:130px">Intervention</th>
+          <th style="width:80px">Owner</th>
+          <th style="width:80px">Due</th>
+          <th style="width:90px">Status</th>
+        </tr></thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+      <div id="emptyState" class="empty" style="display:none">No issues yet. Import an SF report or log an issue.</div>
+    </div>
+  </div>
+
+  <div id="tabMeeting" style="display:none">
+    <div id="meetingBody"></div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-bg" id="modalBg" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modalTitle">Log issue</h2>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<!-- Loading -->
+<div class="loading" id="loading" style="display:none">
+  <div class="loading-box"><div class="spinner"></div> Parsing report with AI…</div>
+</div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+// ── config ──────────────────────────────────────────────────────────────────
+let PAT = '', BASE_ID = '', ANTHROPIC_KEY = '';
+
+function loadConfig() {
+  PAT = 'patJBP7J6KNxc1zTg.771f990a1dd9e7c09c30747c26eb26368be77250abebd35381e7aa8007f3e29b';
+  BASE_ID = 'appAaXK13lXrsan3t';
+  ANTHROPIC_KEY = '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';
+  if (true) {
+    document.getElementById('configBanner').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    loadIssues();
+  } else {
+    document.getElementById('cfgPAT').value = PAT;
+    document.getElementById('cfgBaseID').value = BASE_ID;
+    document.getElementById('cfgAnthropicKey').value = ANTHROPIC_KEY;
+  }
+}
+
+function saveConfig(reset) {
+  if (reset) {
+    document.getElementById('cfgPAT').value = PAT;
+    document.getElementById('cfgBaseID').value = BASE_ID;
+    document.getElementById('cfgAnthropicKey').value = ANTHROPIC_KEY;
+    document.getElementById('configBanner').style.display = 'block';
+    document.getElementById('app').style.display = 'none';
+    return;
+  }
+  PAT = document.getElementById('cfgPAT').value.trim();
+  BASE_ID = document.getElementById('cfgBaseID').value.trim();
+  ANTHROPIC_KEY = document.getElementById('cfgAnthropicKey').value.trim();
+  if (!PAT || !BASE_ID) { alert('PAT and Base ID are required.'); return; }
+  localStorage.setItem('at_pat', PAT);
+  localStorage.setItem('at_base', BASE_ID);
+  localStorage.setItem('at_anthropic', ANTHROPIC_KEY);
+  document.getElementById('configBanner').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  loadIssues();
+}
+
+// ── Airtable API ─────────────────────────────────────────────────────────────
+const AT = () => `https://api.airtable.com/v0/${BASE_ID}`;
+const atHeaders = () => ({ 'Authorization': `Bearer ${PAT}`, 'Content-Type': 'application/json' });
+
+async function atGet(table, params='') {
+  let records = [], offset;
+  do {
+    const qs = [params, offset ? `offset=${offset}` : ''].filter(Boolean).join('&');
+    const r = await fetch(`${AT()}/${encodeURIComponent(table)}${qs?'?'+qs:''}`, { headers: atHeaders() });
+    const d = await r.json();
+    if (d.error) throw new Error(d.error.message);
+    records.push(...(d.records||[]));
+    offset = d.offset;
+  } while(offset);
+  return records;
+}
+
+async function atCreate(table, fields) {
+  const r = await fetch(`${AT()}/${encodeURIComponent(table)}`, {
+    method: 'POST', headers: atHeaders(),
+    body: JSON.stringify({ fields })
+  });
+  return r.json();
+}
+
+async function atUpdate(table, id, fields) {
+  const r = await fetch(`${AT()}/${encodeURIComponent(table)}/${id}`, {
+    method: 'PATCH', headers: atHeaders(),
+    body: JSON.stringify({ fields })
+  });
+  return r.json();
+}
+
+async function atDelete(table, id) {
+  await fetch(`${AT()}/${encodeURIComponent(table)}/${id}`, { method: 'DELETE', headers: atHeaders() });
+}
+
+// ── data ─────────────────────────────────────────────────────────────────────
+let issues = [];
+let history = {}; // keyed by airtable issue id → array of snapshots
+
+const SENT_ORDER = { Unhappy:0, Worried:1, 'Not Great':2, Stable:3, Improved:4, '':5 };
+
+function recToIssue(rec) {
+  const f = rec.fields;
+  const s = k => (f[k]||'');
+  return {
+    id: rec.id,
+    account: s('Account'), sfOwner: s('SF Owner'), sfHealth: s('SF Health'), sfNotes: s('SF Notes'),
+    presentiment: s('Sentiment'), postsentiment: s('Post Sentiment'),
+    issuetype: s('Issue Type'), status: s('Status'),
+    rulevol: s('Rule Volume'), qanotes: s('QA Notes'), agentconcerns: s('Agentic Concerns'),
+    oosissues: s('OOS Issues'), coverage: s('Coverage Constraints'), feedback: s('Client Feedback'),
+    confirmedissue: s('Confirmed Issue'), rootcause: s('Root Cause'), intervention: s('Intervention'),
+    owner: s('Owner'), duedate: s('Due Date'), successmeasure: s('Success Measure'),
+    followup: s('Follow-up Timing'), dateimplemented: s('Date Implemented'),
+    recurrence: s('Recurrence'), internalobs: s('Internal Observations'),
+    nextstep: s('Next Step'), notes: s('Notes'),
+    sfImported: !!(f['SF Imported']), created: s('Created'),
+  };
+}
+
+function issueToFields(issue) {
+  const fields = {};
+  const set = (k,v) => { if (v !== undefined && v !== '') fields[k] = v; };
+  set('Account', issue.account); set('SF Owner', issue.sfOwner); set('SF Health', issue.sfHealth);
+  set('SF Notes', issue.sfNotes); set('Sentiment', issue.presentiment); set('Post Sentiment', issue.postsentiment);
+  set('Issue Type', issue.issuetype); set('Status', issue.status); set('Rule Volume', issue.rulevol);
+  set('QA Notes', issue.qanotes); set('Agentic Concerns', issue.agentconcerns); set('OOS Issues', issue.oosissues);
+  set('Coverage Constraints', issue.coverage); set('Client Feedback', issue.feedback);
+  set('Confirmed Issue', issue.confirmedissue); set('Root Cause', issue.rootcause);
+  set('Intervention', issue.intervention); set('Owner', issue.owner); set('Due Date', issue.duedate);
+  set('Success Measure', issue.successmeasure); set('Follow-up Timing', issue.followup);
+  set('Date Implemented', issue.dateimplemented); set('Recurrence', issue.recurrence);
+  set('Internal Observations', issue.internalobs); set('Next Step', issue.nextstep); set('Notes', issue.notes);
+  if (issue.sfImported) fields['SF Imported'] = true;
+  return fields;
+}
+
+async function loadIssues() {
+  try {
+    const [issueRecs, histRecs] = await Promise.all([
+      atGet('Issues'),
+      atGet('SentimentHistory', 'sort%5B0%5D%5Bfield%5D=Date&sort%5B0%5D%5Bdirection%5D=asc')
+    ]);
+    issues = issueRecs.map(recToIssue);
+    history = {};
+    for (const h of histRecs) {
+      const linked = (h.fields['Issue']||[]);
+      const snap = { date: h.fields['Date']||'', sentiment: h.fields['Sentiment']||'', sfHealth: h.fields['SF Health']||'', source: h.fields['Source']||'' };
+      for (const rid of linked) {
+        if (!history[rid]) history[rid] = [];
+        history[rid].push(snap);
+      }
+    }
+    render();
+    renderMetrics();
+    renderMeeting();
+  } catch(e) {
+    alert('Error loading from Airtable: ' + e.message);
+  }
+}
+
+// ── badges ───────────────────────────────────────────────────────────────────
+function sentBadge(s) {
+  const m = { Unhappy:'b-red', Worried:'b-amber', 'Not Great':'b-orange', Stable:'b-teal', Improved:'b-blue' };
+  return s ? `<span class="badge ${m[s]||'b-gray'}">${s}</span>` : '<span style="color:#ccc">—</span>';
+}
+function statusBadge(s) {
+  const m = { Flagged:'b-purple', Open:'b-amber', 'In Progress':'b-blue', Resolved:'b-teal', Recurring:'b-red' };
+  return s ? `<span class="badge ${m[s]||'b-gray'}">${s}</span>` : '';
+}
+function healthBadge(h) {
+  const m = { 'High Risk':'b-red', 'Some Risk':'b-amber', 'Fairly Satisfied':'b-gray', 'Very Satisfied':'b-teal' };
+  return h ? `<span class="badge ${m[h]||'b-gray'}" style="font-size:10px">${h}</span>` : '<span style="color:#ccc">—</span>';
+}
+
+// ── metrics ───────────────────────────────────────────────────────────────────
+function renderMetrics() {
+  const m = {
+    total: issues.length,
+    flagged: issues.filter(i=>i.status==='Flagged').length,
+    open: issues.filter(i=>['Open','In Progress'].includes(i.status)).length,
+    unhappy: issues.filter(i=>i.presentiment==='Unhappy').length,
+    worried: issues.filter(i=>i.presentiment==='Worried').length,
+    resolved: issues.filter(i=>i.status==='Resolved').length,
+  };
+  const colors = ['','color:#6b21a8','color:#92400e','color:#991b1b','color:#92400e','color:#166534'];
+  const labels = ['Total tracked','Flagged','Open / active','Unhappy','Worried','Resolved'];
+  const vals = [m.total,m.flagged,m.open,m.unhappy,m.worried,m.resolved];
+  document.getElementById('metrics').innerHTML = labels.map((l,i)=>`
+    <div class="metric"><div class="metric-label">${l}</div><div class="metric-value" style="${colors[i]}">${vals[i]}</div></div>
+  `).join('');
+}
+
+// ── filter & render table ─────────────────────────────────────────────────────
+let activeTab = 'log';
+
+function switchTab(tab, el) {
+  activeTab = tab;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tabLog').style.display = tab==='log'?'block':'none';
+  document.getElementById('tabMeeting').style.display = tab==='meeting'?'block':'none';
+}
+
+function render() {
+  const search = document.getElementById('search').value.toLowerCase();
+  const fS = document.getElementById('fSentiment').value;
+  const fSt = document.getElementById('fStatus').value;
+  const fO = document.getElementById('fOwner').value;
+
+  // populate owner filter
+  const owners = [...new Set(issues.map(i=>i.sfOwner).filter(Boolean))].sort();
+  const ownerSel = document.getElementById('fOwner');
+  const curOwner = ownerSel.value;
+  ownerSel.innerHTML = '<option value="">All SF owners</option>' + owners.map(o=>`<option${o===curOwner?' selected':''}>${o}</option>`).join('');
+
+  const filtered = issues
+    .filter(i => {
+      if (search && !`${i.account} ${i.sfOwner} ${i.rootcause} ${i.owner}`.toLowerCase().includes(search)) return false;
+      if (fS && i.presentiment !== fS) return false;
+      if (fSt && i.status !== fSt) return false;
+      if (fO && i.sfOwner !== fO) return false;
+      return true;
+    })
+    .sort((a,b) => (SENT_ORDER[a.presentiment]??5)-(SENT_ORDER[b.presentiment]??5));
+
+  const body = document.getElementById('tableBody');
+  const empty = document.getElementById('emptyState');
+
+  if (!filtered.length) { body.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+
+  body.innerHTML = filtered.map(i => `
+    <tr class="data-row${i.sfImported&&i.status==='Flagged'?' '+'':''}" onclick="openDetail('${i.id}')" style="${i.sfImported&&i.status==='Flagged'?'background:#fffdf5':''}">
+      <td title="${i.account}">${i.account}${i.sfImported?'<span class="sf-tag">SF</span>':''}</td>
+      <td>${i.sfOwner||'—'}</td>
+      <td>${sentBadge(i.presentiment)}</td>
+      <td>${healthBadge(i.sfHealth)}</td>
+      <td title="${i.rootcause}">${i.rootcause||'—'}</td>
+      <td title="${i.intervention}">${i.intervention||'—'}</td>
+      <td>${i.owner||'—'}</td>
+      <td>${i.duedate||'—'}</td>
+      <td>${statusBadge(i.status)}</td>
+    </tr>
+  `).join('');
+}
+
+// ── meeting prep ──────────────────────────────────────────────────────────────
+function renderMeeting() {
+  const priority = issues
+    .filter(i=>['Unhappy','Worried','Not Great'].includes(i.presentiment) && i.status!=='Resolved')
+    .sort((a,b)=>(SENT_ORDER[a.presentiment]??5)-(SENT_ORDER[b.presentiment]??5));
+
+  document.getElementById('meetingTab').textContent = `Meeting prep (${priority.length})`;
+
+  const body = document.getElementById('meetingBody');
+  if (!priority.length) { body.innerHTML='<div class="empty">No priority accounts this week.</div>'; return; }
+
+  body.innerHTML = `<p style="font-size:13px;color:#888;margin-bottom:12px">${priority.length} account${priority.length>1?'s':''} with active quality concerns — sorted by severity.</p>` +
+    priority.map(i => {
+      const hist = (history[i.id]||[]);
+      return `
+      <div class="meeting-card" onclick="openDetail('${i.id}')">
+        <div class="meeting-card-header">
+          <span class="meeting-card-name">${i.account}</span>
+          ${sentBadge(i.presentiment)} ${statusBadge(i.status)} ${healthBadge(i.sfHealth)}
+          ${i.sfOwner?`<span style="font-size:12px;color:#aaa">${i.sfOwner}</span>`:''}
+        </div>
+        <div class="meeting-grid">
+          <div><span>Confirmed issue: </span>${i.confirmedissue||'<em style="color:#ccc">not set</em>'}</div>
+          <div><span>Root cause: </span>${i.rootcause||'<em style="color:#ccc">not set</em>'}</div>
+          <div><span>Intervention: </span>${i.intervention||'<em style="color:#ccc">not set</em>'}</div>
+          <div><span>Owner: </span>${i.owner||'<em style="color:#ccc">unassigned</em>'}</div>
+          <div><span>Due: </span>${i.duedate||'—'}</div>
+          <div><span>Follow-up: </span>${i.followup||'—'}</div>
+          ${i.successmeasure?`<div style="grid-column:1/-1"><span>Success measure: </span>${i.successmeasure}</div>`:''}
+        </div>
+        ${i.sfNotes?`<div class="meeting-notes">${i.sfNotes}</div>`:''}
+        ${hist.length>1?`<div style="margin-top:10px;font-size:12px;color:#888">Sentiment history: ${hist.map(h=>`<span style="color:${sentColor(h.sentiment)};font-weight:500">${h.sentiment}</span> <span style="color:#ccc">(${h.date})</span>`).join(' → ')}</div>`:''}
+      </div>`;
+    }).join('');
+}
+
+function sentColor(s) {
+  return {Unhappy:'#991b1b',Worried:'#92400e','Not Great':'#9a3412',Stable:'#166534',Improved:'#1e40af'}[s]||'#888';
+}
+
+// ── modal form ────────────────────────────────────────────────────────────────
+let editingId = null;
+
+function formHTML(issue) {
+  const v = f => issue?.[f]||'';
+  const sel = (f, opts) => opts.map(o=>`<option${v(f)===o?' selected':''}>${o}</option>`).join('');
+  const inp = (id,placeholder='') => `<input id="f_${id}" value="${v(id)}" placeholder="${placeholder}">`;
+  const ta = (id) => `<textarea id="f_${id}">${v(id)}</textarea>`;
+  const dr = (id,opts) => `<select id="f_${id}"><option value="">Select…</option>${sel(id,opts)}</select>`;
+
+  const hist = issue ? (history[issue.id]||[]) : [];
+
+  return `<div class="form-grid">
+    <div class="section-label">Account info</div>
+    <div class="form-col"><label>Account name *</label>${inp('account','Acme Corp')}</div>
+    <div class="form-col"><label>SF account owner</label>${inp('sfOwner')}</div>
+    <div class="form-col"><label>Pre-intervention sentiment</label>${dr('presentiment',['Not Great','Worried','Unhappy','Stable','Improved'])}</div>
+    <div class="form-col"><label>SF health status</label>${dr('sfHealth',['High Risk','Some Risk','Fairly Satisfied','Very Satisfied','In Activation','N/A'])}</div>
+    <div class="form-col full"><label>SF notes / client feedback</label>${ta('sfNotes')}</div>
+
+    <div class="section-label">Issue inputs</div>
+    <div class="form-col"><label>Issue type</label>${dr('issuetype',['Agentic Output','OOS / Replacement','Coverage / Bundle','QA / Rejection','Rule Change','Escalation','Other'])}</div>
+    <div class="form-col"><label>Status</label>${dr('status',['Flagged','Open','In Progress','Resolved','Recurring'])}</div>
+    <div class="form-col"><label>Rule volume / changes</label>${inp('rulevol')}</div>
+    <div class="form-col"><label>QA notes / rejection trends</label>${inp('qanotes')}</div>
+    <div class="form-col full"><label>Agentic output concerns</label>${ta('agentconcerns')}</div>
+    <div class="form-col"><label>OOS / replacement issues</label>${inp('oosissues')}</div>
+    <div class="form-col"><label>Coverage / bundle constraints</label>${inp('coverage')}</div>
+
+    <div class="section-label">Confirmed issue & hypothesis</div>
+    <div class="form-col full"><label>Confirmed quality issue</label>${ta('confirmedissue')}</div>
+    <div class="form-col full"><label>Root cause hypothesis</label>${ta('rootcause')}</div>
+
+    <div class="section-label">Intervention plan</div>
+    <div class="form-col full"><label>Intervention selected</label>${ta('intervention')}</div>
+    <div class="form-col"><label>Owner</label>${inp('owner','Name or team')}</div>
+    <div class="form-col"><label>Due date</label><input type="date" id="f_duedate" value="${v('duedate')}"></div>
+    <div class="form-col full"><label>Success measure</label>${inp('successmeasure','e.g. sentiment improves to Stable in 2 weeks')}</div>
+    <div class="form-col"><label>Follow-up timing</label>${inp('followup','e.g. 1-week check-in')}</div>
+    <div class="form-col"><label>Date implemented</label><input type="date" id="f_dateimplemented" value="${v('dateimplemented')}"></div>
+
+    <div class="section-label">Tracking & outcomes</div>
+    <div class="form-col"><label>Post-intervention sentiment</label>${dr('postsentiment',['Not Great','Worried','Unhappy','Stable','Improved'])}</div>
+    <div class="form-col"><label>Recurrence?</label>${dr('recurrence',['No','Yes — minor','Yes — major'])}</div>
+    <div class="form-col full"><label>Internal quality observations</label>${ta('internalobs')}</div>
+    <div class="form-col full"><label>Next step</label>${ta('nextstep')}</div>
+    <div class="form-col full"><label>Additional notes</label>${ta('notes')}</div>
+
+    ${hist.length ? `
+    <div class="section-label">Sentiment history</div>
+    <div class="form-col full">${[...hist].reverse().map(h=>`
+      <div class="hist-row">
+        <span class="hist-date">${h.date}</span>
+        ${sentBadge(h.sentiment)} ${healthBadge(h.sfHealth)}
+        <span class="hist-source">${h.source}</span>
+      </div>`).join('')}
+    </div>` : ''}
+
+    <div class="form-col full">
+      <div class="form-actions">
+        ${editingId ? `<button class="btn-delete" onclick="deleteIssue('${editingId}')">Delete</button>` : '<div></div>'}
+        <div style="display:flex;gap:8px">
+          <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+          <button class="btn-save" onclick="saveIssue()">Save changes</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function collectForm() {
+  const fields = ['account','sfOwner','sfHealth','sfNotes','presentiment','postsentiment','issuetype','status',
+    'rulevol','qanotes','agentconcerns','oosissues','coverage','feedback','confirmedissue','rootcause',
+    'intervention','owner','duedate','successmeasure','followup','dateimplemented','recurrence','internalobs','nextstep','notes'];
+  const obj = {};
+  fields.forEach(f => { const el = document.getElementById('f_'+f); if(el) obj[f] = el.value.trim(); });
+  return obj;
+}
+
+function openAdd() {
+  editingId = null;
+  document.getElementById('modalTitle').textContent = 'Log quality issue';
+  document.getElementById('modalBody').innerHTML = formHTML(null);
+  document.getElementById('modalBg').classList.add('open');
+}
+
+function openDetail(id) {
+  editingId = id;
+  const issue = issues.find(i=>i.id===id);
+  document.getElementById('modalTitle').textContent = issue.account || 'Issue detail';
+  document.getElementById('modalBody').innerHTML = formHTML(issue);
+  document.getElementById('modalBg').classList.add('open');
+}
+
+function closeModal() { document.getElementById('modalBg').classList.remove('open'); }
+
+async function saveIssue() {
+  const data = collectForm();
+  if (!data.account) { alert('Account name is required.'); return; }
+  const today = new Date().toISOString().split('T')[0];
+
+  try {
+    if (editingId) {
+      const existing = issues.find(i=>i.id===editingId);
+      // track sentiment change
+      if (data.presentiment && data.presentiment !== existing.presentiment) {
+        await atCreate('SentimentHistory', {
+          'Issue': [editingId],
+          'Date': today,
+          'Sentiment': data.presentiment,
+          'SF Health': data.sfHealth,
+          'Source': 'manual'
+        });
+      }
+      await atUpdate('Issues', editingId, issueToFields({...existing, ...data}));
+    } else {
+      const rec = await atCreate('Issues', {...issueToFields(data), 'Created': new Date().toISOString()});
+      if (data.presentiment) {
+        await atCreate('SentimentHistory', {
+          'Issue': [rec.id],
+          'Date': today,
+          'Sentiment': data.presentiment,
+          'SF Health': data.sfHealth||'',
+          'Source': 'manual'
+        });
+      }
+    }
+    closeModal();
+    await loadIssues();
+  } catch(e) {
+    alert('Error saving: ' + e.message);
+  }
+}
+
+async function deleteIssue(id) {
+  if (!confirm('Delete this issue?')) return;
+  await atDelete('Issues', id);
+  closeModal();
+  await loadIssues();
+}
+
+// ── PDF import ────────────────────────────────────────────────────────────────
+async function handlePDF(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  event.target.value = '';
+  if (!ANTHROPIC_KEY) { alert('Add your Anthropic API key in ⚙️ settings to use PDF import.'); return; }
+  document.getElementById('loading').style.display = 'flex';
+
+  try {
+    // extract text
+    const buf = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+    let text = '';
+    for (let i=1; i<=pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      text += content.items.map(it=>it.str||'').join(' ') + '\n';
+    }
+
+    // call Claude
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1500,
+        messages: [{ role: 'user', content: `Parse this Salesforce account health report. Extract ONLY accounts where Account Sentiment is one of:
+- "Not great - working through a number of issues right now" → "Not Great"
+- "Worried - continue to face a number of issues" → "Worried"
+- "Unhappy - lost confidence" → "Unhappy"
+
+Return ONLY a JSON array, no markdown:
+[{"account":"Name","owner":"Owner","sfHealth":"Some Risk","sentiment":"Not Great","notes":"any notes"}]
+
+Report:
+${text.slice(0,7000)}` }]
+      })
+    });
+    const aiData = await res.json();
+    const raw = aiData.content?.find(b=>b.type==='text')?.text || '[]';
+    const parsed = JSON.parse(raw.replace(/```json|```/g,'').trim());
+
+    // upsert to Airtable
+    const today = new Date().toISOString().split('T')[0];
+    let added=0, updated=0;
+
+    for (const p of parsed) {
+      const existing = issues.find(i=>i.account.toLowerCase()===p.account.toLowerCase());
+      if (existing) {
+        const lastHist = (history[existing.id]||[]);
+        const last = lastHist[lastHist.length-1];
+        const needsSnap = !last || last.date!==today || last.sentiment!==p.sentiment;
+        await atUpdate('Issues', existing.id, {
+          'SF Owner': p.owner||existing.sfOwner,
+          'SF Health': p.sfHealth||existing.sfHealth,
+          'SF Notes': p.notes||existing.sfNotes,
+          'Sentiment': p.sentiment||existing.presentiment,
+          'SF Imported': true,
+        });
+        if (needsSnap) {
+          await atCreate('SentimentHistory', { 'Issue':[existing.id], 'Date':today, 'Sentiment':p.sentiment, 'SF Health':p.sfHealth, 'Source':'import' });
+        }
+        updated++;
+      } else {
+        const rec = await atCreate('Issues', {
+          'Account': p.account, 'SF Owner': p.owner||'', 'SF Health': p.sfHealth||'',
+          'SF Notes': p.notes||'', 'Sentiment': p.sentiment, 'Status': 'Flagged',
+          'SF Imported': true, 'Created': new Date().toISOString()
+        });
+        await atCreate('SentimentHistory', { 'Issue':[rec.id], 'Date':today, 'Sentiment':p.sentiment, 'SF Health':p.sfHealth||'', 'Source':'import' });
+        added++;
+      }
+    }
+
+    const banner = document.getElementById('importBanner');
+    banner.style.display = 'flex';
+    banner.innerHTML = `<span>✓ <strong>${parsed.length} at-risk accounts</strong> found — ${added} new, ${updated} updated (${new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})})</span><button onclick="this.parentElement.style.display='none'" style="background:none;border:none;cursor:pointer;color:#166534;font-size:16px">×</button>`;
+    document.getElementById('importMeta').textContent = `Last import: ${new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} · ${parsed.length} at-risk accounts`;
+
+    await loadIssues();
+  } catch(e) {
+    alert('Error importing PDF: ' + e.message);
+  }
+  document.getElementById('loading').style.display = 'none';
+}
+
+// ── init ─────────────────────────────────────────────────────────────────────
+loadConfig();
+</script>
+</body>
+</html>
