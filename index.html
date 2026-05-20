@@ -350,7 +350,8 @@ function parseRow(line){
       inQ=!inQ;i++;continue;
     }
     if(c===','&&!inQ){cols.push(cur.trim());cur='';i++;continue;}
-    if(c===''){i++;continue;}
+    if(c==='
+'){i++;continue;}
     cur+=c;i++;
   }
   cols.push(cur.trim());
